@@ -8,14 +8,14 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // ── Payme error codes ──────────────────────────────────────────────────────────
-// All messages must be plain strings — Payme checkout displays [object Object] for any object message
+// Payme checkout extracts message.ru / message.uz / message.en — must be multilingual object
 const PAYME_ERRORS = {
-  INVALID_AMOUNT:        { code: -31001, message: 'Invalid amount' },
-  ORDER_NOT_FOUND:       { code: -31050, message: 'Order not found' },
-  ALREADY_PAID:          { code: -31051, message: 'Order already paid' },
-  CANNOT_PERFORM:        { code: -31008, message: 'Cannot perform transaction' },
-  TRANSACTION_NOT_FOUND: { code: -31003, message: 'Transaction not found' },
-  UNAUTHORIZED:          { code: -32504, message: 'Authorization error' },
+  INVALID_AMOUNT:        { code: -31001, message: { ru: 'Неверная сумма',            uz: "Noto'g'ri summa",              en: 'Invalid amount'            } },
+  ORDER_NOT_FOUND:       { code: -31050, message: { ru: 'Заказ не найден',            uz: 'Buyurtma topilmadi',            en: 'Order not found'           } },
+  ALREADY_PAID:          { code: -31051, message: { ru: 'Заказ уже оплачен',         uz: "Buyurtma to'langan",            en: 'Order already paid'        } },
+  CANNOT_PERFORM:        { code: -31008, message: { ru: 'Невозможно выполнить',      uz: "Bajarib bo'lmaydi",            en: 'Cannot perform transaction' } },
+  TRANSACTION_NOT_FOUND: { code: -31003, message: { ru: 'Транзакция не найдена',     uz: 'Tranzaksiya topilmadi',        en: 'Transaction not found'     } },
+  UNAUTHORIZED:          { code: -32504, message: { ru: 'Ошибка авторизации',        uz: 'Avtorizatsiya xatosi',         en: 'Authorization error'       } },
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ async function createTransaction(db: FirebaseFirestore.Firestore, params: Record
   const pendingSnap = await db.collection('payme_transactions')
     .where('orderId', '==', orderId).where('state', '==', 1).limit(1).get()
   if (!pendingSnap.empty) {
-    return { error: { code: -31099, message: 'Payment in progress' } }
+    return { error: { code: -31099, message: { ru: 'Платёж выполняется', uz: "To'lov jarayonda", en: 'Payment in progress' } } }
   }
 
   const createTime = Date.now()

@@ -3,7 +3,11 @@
     "source": ".",
     "ignore": [
       "firebase.json",
-      "**/.*",
+      ".git",
+      ".github",
+      ".gitignore",
+      ".gitattributes",
+      "**/.git/**",
       "**/node_modules/**"
     ],
     "frameworksBackend": {
