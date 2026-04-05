@@ -1,0 +1,67 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches: [master, main]
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Cache Next.js Turbopack build — speeds up subsequent deploys 2-3x
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Create .env.local from GitHub secrets so Next.js build can read them
+      - name: Create .env.local
+        run: |
+          cat > .env.local << 'EOF'
+          NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+          NEXT_PUBLIC_FIREBASE_DATABASE_URL=${{ secrets.NEXT_PUBLIC_FIREBASE_DATABASE_URL }}
+          NEXT_PUBLIC_BASE_URL=https://traderai.uz
+          FIREBASE_PROJECT_ID=trader-ai-d883f
+          FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          PAYME_SECRET_KEY=${{ secrets.PAYME_SECRET_KEY }}
+          PAYME_SECRET_KEY_TEST=${{ secrets.PAYME_SECRET_KEY_TEST }}
+          PAYME_MERCHANT_ID=${{ secrets.PAYME_MERCHANT_ID }}
+          PAYME_MERCHANT_ID_TEST=${{ secrets.PAYME_MERCHANT_ID_TEST }}
+          CLICK_SERVICE_ID=${{ secrets.CLICK_SERVICE_ID }}
+          CLICK_MERCHANT_ID=${{ secrets.CLICK_MERCHANT_ID }}
+          EOF
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRADER_AI_D883F }}
+          channelId: live
+          projectId: trader-ai-d883f
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
