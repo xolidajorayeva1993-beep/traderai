@@ -78,6 +78,7 @@ jobs:
         env:
           FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRADER_AI_D883F }}
           FIREBASE_CLI_EXPERIMENTS: webframeworks
+          NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
         run: |
           echo "$FIREBASE_SA_JSON" > /tmp/sa.json
-          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only hosting --non-interactive --project trader-ai-d883f 2>&1
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only hosting --non-interactive --project trader-ai-d883f --debug 2>&1
