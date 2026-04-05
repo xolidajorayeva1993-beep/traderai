@@ -273,10 +273,78 @@ body {
   background: linear-gradient(90deg, transparent, rgba(0, 212, 170, 0.3), transparent);
 }
 
-body {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  min-height: 100dvh;
-  overflow-x: hidden;
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — Landing + Dashboard + Auth
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Landing page navbar ─────────────────────────────────────── */
+.ld-nav-links { display: flex; }
+.ld-nav-auth  { display: flex; }
+
+/* ─── Landing results table ───────────────────────────────────── */
+.ld-res-grid { display: grid; grid-template-columns: 1fr 80px 100px 80px 100px; }
+.ld-res-hide { display: block; }
+
+/* ─── Dashboard stats grid ────────────────────────────────────── */
+.dash-stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.dash-charts-row { display: grid; grid-template-columns: 1fr 1fr 220px; gap: 14px; }
+
+@media (max-width: 1024px) {
+  .dash-charts-row { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  /* ── Landing navbar ── */
+  .ld-nav-links { display: none !important; }
+  .ld-nav-auth  { gap: 6px !important; }
+  .ld-nav-auth .ld-login-btn { display: none !important; }
+
+  /* ── Landing hero ── */
+  .ld-hero-btns { flex-direction: column !important; align-items: stretch !important; width: 100% !important; max-width: 320px; margin: 0 auto 48px !important; }
+  .ld-hero-btns a { text-align: center !important; justify-content: center !important; width: 100% !important; }
+
+  /* ── Landing results table ── */
+  .ld-res-grid { grid-template-columns: 1fr 60px 70px 70px !important; }
+  .ld-res-hide { display: none !important; }
+
+  /* ── Landing CTA box ── */
+  .ld-cta-box { padding: 36px 20px !important; }
+
+  /* ── Landing footer bottom ── */
+  .ld-footer-bottom { flex-direction: column !important; align-items: center !important; text-align: center !important; }
+
+  /* ── Dashboard stats ── */
+  .dash-stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+  .dash-charts-row { grid-template-columns: 1fr !important; }
+
+  /* ── Dashboard signal cards ── */
+  .sig-levels-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* ── Billing ── */
+  .billing-plans { grid-template-columns: 1fr !important; }
+
+  /* ── Profile ── */
+  .profile-grid { grid-template-columns: 1fr !important; }
+
+  /* ── Admin tables ── */
+  .admin-table-wrap { overflow-x: auto !important; }
+
+  /* ── Generic ── */
+  .hide-mobile  { display: none !important; }
+  .show-mobile  { display: flex !important; }
+  .full-mobile  { width: 100% !important; }
+  .stack-mobile { flex-direction: column !important; }
+}
+
+@media (max-width: 480px) {
+  /* ── Dashboard stats ── */
+  .dash-stats-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* ── Auth card ── */
+  .auth-card { padding: 1.5rem !important; }
+
+  /* ── Dashboard header ── */
+  .dash-header-row { flex-direction: column !important; align-items: flex-start !important; }
+  .dash-header-btns { flex-wrap: wrap !important; width: 100% !important; }
+  .dash-header-btns a, .dash-header-btns button { flex: 1 1 auto !important; justify-content: center !important; }
 }

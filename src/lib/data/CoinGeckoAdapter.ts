@@ -6,18 +6,18 @@ import type { DataProvider } from './DataProvider';
 
 const BASE_URL = 'https://api.coingecko.com/api/v3';
 
-// Map common symbol → CoinGecko id
+// Map common symbol → CoinGecko id (supports both BTC/USDT and BTCUSDT formats)
 const SYMBOL_MAP: Record<string, string> = {
-  'BTC/USDT': 'bitcoin',
-  'ETH/USDT': 'ethereum',
-  'BNB/USDT': 'binancecoin',
-  'SOL/USDT': 'solana',
-  'XRP/USDT': 'ripple',
-  'ADA/USDT': 'cardano',
-  'DOGE/USDT': 'dogecoin',
-  'AVAX/USDT': 'avalanche-2',
-  'MATIC/USDT': 'matic-network',
-  'DOT/USDT': 'polkadot',
+  'BTC/USDT': 'bitcoin',  'BTCUSDT': 'bitcoin',  'BTCUSD': 'bitcoin',
+  'ETH/USDT': 'ethereum', 'ETHUSDT': 'ethereum', 'ETHUSD': 'ethereum',
+  'BNB/USDT': 'binancecoin', 'BNBUSDT': 'binancecoin', 'BNBUSD': 'binancecoin',
+  'SOL/USDT': 'solana',   'SOLUSDT': 'solana',
+  'XRP/USDT': 'ripple',   'XRPUSDT': 'ripple',
+  'ADA/USDT': 'cardano',  'ADAUSDT': 'cardano',
+  'DOGE/USDT': 'dogecoin','DOGEUSDT': 'dogecoin',
+  'AVAX/USDT': 'avalanche-2', 'AVAXUSDT': 'avalanche-2',
+  'MATIC/USDT': 'matic-network', 'MATICUSDT': 'matic-network',
+  'DOT/USDT': 'polkadot', 'DOTUSDT': 'polkadot',
 };
 
 const TIMEFRAME_TO_DAYS: Record<string, number> = {

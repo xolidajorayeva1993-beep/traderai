@@ -449,12 +449,12 @@ export default function DashboardPage() {
       {modalSig && <SignalModal sig={modalSig} onClose={() => setModalSig(null)} />}
 
       {/*  Header  */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, paddingTop: 2 }}>
+      <div className="dash-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, paddingTop: 2 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 3 }}>Dashboard</h1>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>FATH AI  signal natijalari va statistika</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="dash-header-btns" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             onClick={() => { setLoading(true); fetchSignals() }}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 15px', borderRadius: 10, background: 'rgba(91,139,255,0.1)', border: '1px solid rgba(91,139,255,0.25)', color: '#5B8BFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
@@ -471,7 +471,8 @@ export default function DashboardPage() {
       </div>
 
       {/*  Live Prices Ticker  */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', background: '#0D0F18', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ overflowX: 'auto' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', background: '#0D0F18', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden', minWidth: 480 }}>
         {DISPLAY_PAIRS.map((sym, i) => {
           const p = liveData?.prices.find(pr => pr.symbol === sym)
           const isUp = (p?.change ?? 0) >= 0
@@ -497,9 +498,10 @@ export default function DashboardPage() {
           )
         })}
       </div>
+      </div>
 
       {/*  Stat Cards (5 ta: Active + Pending alohida ko'rsatiladi)  */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+      <div className="dash-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
         <StatCard label="Jami Signallar" value={String(stats.total)} sub={`${stats.open} ta ochiq`}                                        color="#5B8BFF" icon={Activity} />
         <StatCard label="Aktiv Signallar" value={String(stats.active ?? 0)} sub="darhol kuzatilmoqda"                                        color="#00D4AA" icon={Zap} />
         <StatCard label="Kutilayotgan"   value={String(stats.pending ?? 0)} sub="trigger kutilmoqda"                                         color="#F5B731" icon={Clock} />
@@ -508,7 +510,7 @@ export default function DashboardPage() {
       </div>
 
       {/*  Charts Row  */}
-      <div style={{ display: 'grid', gridTemplateColumns: hasPips ? '1fr 2fr 2fr' : '1fr 2fr', gap: 14 }}>
+      <div className="dash-charts-row" style={{ display: 'grid', gridTemplateColumns: hasPips ? '1fr 2fr 2fr' : '1fr 2fr', gap: 14 }}>
         <WinRateCircle winRate={stats.winRate} wins={stats.wins} losses={stats.losses} />
         <SignalBarChart signals={signals} />
         {hasPips && <PipsChart signals={signals} />}
@@ -663,7 +665,8 @@ export default function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <>
+          <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 660 }}>
             {/* Table column headers */}
             <div style={{ display: 'grid', gridTemplateColumns: '88px 1fr 110px 110px 110px 68px 112px', gap: 10, padding: '0 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 6 }}>
               {["YO'NAL", 'JUFTLIK', 'KIRISH', 'SL', 'TP1', 'R:R', 'HOLAT'].map(h => (
@@ -711,7 +714,8 @@ export default function DashboardPage() {
                 )
               })}
             </div>
-          </>
+          </div>
+          </div>
         )}
       </div>
 

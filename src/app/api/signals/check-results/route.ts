@@ -56,6 +56,28 @@ async function fetchBinanceOHLCV(symbol: string, tf: string, fromMs: number): Pr
   } catch { return [] }
 }
 
+// ─── CoinGecko OHLCV fallback (crypto, no key required) ──────
+async function fetchCoinGeckoOHLCV(symbol: string, tf: string): Promise<OHLCBar[]> {
+  const COIN_MAP: Record<string, string> = {
+    BTCUSDT: 'bitcoin', BTCUSD: 'bitcoin',
+    ETHUSDT: 'ethereum', ETHUSD: 'ethereum',
+    BNBUSDT: 'binancecoin', SOLUSDT: 'solana',
+    XRPUSDT: 'ripple', ADAUSDT: 'cardano',
+  }
+  const coinId = COIN_MAP[symbol.toUpperCase()]
+  if (!coinId) return []
+  const days = tf === '1d' || tf === '1w' ? 90 : tf === '4h' ? 30 : 7
+  try {
+    const r = await fetch(
+      `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`,
+      { signal: AbortSignal.timeout(10000), cache: 'no-store' }
+    )
+    if (!r.ok) return []
+    const raw = await r.json() as number[][]
+    return raw.map(k => ({ time: k[0], open: k[1], high: k[2], low: k[3], close: k[4] }))
+  } catch { return [] }
+}
+
 // ─── Yahoo Finance public OHLCV (forex / gold) ───────────────
 async function fetchYahooOHLCV(symbol: string, tf: string, fromMs: number): Promise<OHLCBar[]> {
   const yahooSym = symbol.includes('XAU') ? 'GC=F'
@@ -93,9 +115,16 @@ async function fetchYahooOHLCV(symbol: string, tf: string, fromMs: number): Prom
 // ─── Unified OHLCV fetcher ────────────────────────────────────
 async function fetchOHLCV(symbol: string, tf: string, fromMs: number): Promise<OHLCBar[]> {
   const isCrypto = /USDT$|BTC$|ETH$|BNB$/i.test(symbol)
-  return isCrypto
-    ? fetchBinanceOHLCV(symbol, tf, fromMs)
-    : fetchYahooOHLCV(symbol, tf, fromMs)
+  if (isCrypto) {
+    const bars = await fetchBinanceOHLCV(symbol, tf, fromMs)
+    if (bars.length > 0) return bars
+    // Binance blocked or rate limited → try CoinGecko
+    console.log(`[check-results] Binance failed for ${symbol}, trying CoinGecko`)
+    const cgBars = await fetchCoinGeckoOHLCV(symbol, tf)
+    // CoinGecko gives full history, filter by fromMs
+    return cgBars.filter(b => b.time >= fromMs)
+  }
+  return fetchYahooOHLCV(symbol, tf, fromMs)
 }
 
 // ─── Core: OHLCV skanerlash — birinchi TP yoki SL ────────────

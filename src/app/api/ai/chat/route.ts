@@ -10,6 +10,9 @@ import { FailoverDataProvider } from '@/lib/data/DataProvider'
 import { TwelveDataAdapter } from '@/lib/data/TwelveDataAdapter'
 import { YahooFinanceAdapter } from '@/lib/data/YahooFinanceAdapter'
 import { BinanceAdapter } from '@/lib/data/BinanceAdapter'
+import { CoinGeckoAdapter } from '@/lib/data/CoinGeckoAdapter'
+import { initAdmin } from '@/lib/firebase/admin'
+import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { withOHLCVCache } from '@/lib/ohlcvCache'
 import { generateChartSVG } from '@/lib/analysis/chartRenderer'
 import type { Levels } from '@/lib/analysis/chartRenderer'
@@ -123,6 +126,7 @@ const forexProvider = new FailoverDataProvider([
 ])
 const cryptoProvider = new FailoverDataProvider([
   new BinanceAdapter(),
+  new CoinGeckoAdapter(),
   new YahooFinanceAdapter(),
 ])
 
@@ -655,8 +659,6 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 async function checkAndIncrementUsage(uid: string): Promise<{ blocked: boolean; reason?: string }> {
   console.log('[usage] START uid=', uid)
   try {
-    const { initAdmin } = await import('@/lib/firebase/admin')
-    const { getFirestore, FieldValue } = await import('firebase-admin/firestore')
     initAdmin()
     const db = getFirestore()
 
