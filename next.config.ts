@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     'firebase-admin/storage',
     '@google-cloud/firestore',
     '@google-cloud/storage',
+    'sharp',
   ],
 
   // Firebase SDK v12 + React 19 StrictMode incompatibility:
