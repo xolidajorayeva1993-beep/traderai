@@ -115,23 +115,38 @@ function isAuthorized(req: NextRequest): boolean {
 }
 
 // ─── Binance klines (kripto OHLCV) ───────────────────────────
+// Binance.com Cloud Run (Google IP) dan bloklanishi mumkin (HTTP 451).
+// Bunday holda binance.us yoki api4 (EU) ishlatamiz.
 async function fetchBinanceOHLCV(
   symbol: string,
   interval: string,
   limit = 200,
 ): Promise<OHLCVCandle[]> {
-  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-  const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10_000) });
-  if (!res.ok) throw new Error(`Binance ${symbol} ${interval}: HTTP ${res.status}`);
-  const raw: unknown[][] = await res.json();
-  return raw.map(k => ({
-    timestamp: Number(k[0]),
-    open:      parseFloat(String(k[1])),
-    high:      parseFloat(String(k[2])),
-    low:       parseFloat(String(k[3])),
-    close:     parseFloat(String(k[4])),
-    volume:    parseFloat(String(k[5])),
-  }));
+  // Endpointlar ketma-ket sinab ko'ramiz
+  const endpoints = [
+    `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+    `https://api4.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+    `https://api-gcp.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+  ];
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(12_000) });
+      if (res.status === 451 || res.status === 403) continue; // geo-block → keyingisini sinal
+      if (!res.ok) throw new Error(`Binance ${symbol} ${interval}: HTTP ${res.status}`);
+      const raw: unknown[][] = await res.json();
+      return raw.map(k => ({
+        timestamp: Number(k[0]),
+        open:      parseFloat(String(k[1])),
+        high:      parseFloat(String(k[2])),
+        low:       parseFloat(String(k[3])),
+        close:     parseFloat(String(k[4])),
+        volume:    parseFloat(String(k[5])),
+      }));
+    } catch {
+      continue;
+    }
+  }
+  throw new Error(`Binance ${symbol} ${interval}: barcha endpointlar blok`);
 }
 
 // ─── Asinxron batch runner — N ta parallel ───────────────────
