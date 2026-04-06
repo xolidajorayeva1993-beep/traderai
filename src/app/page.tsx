@@ -291,12 +291,12 @@ export default async function Home() {
             </div>
             <span style={{ fontWeight: 800, fontSize: 18, color: '#EEEEF0', letterSpacing: '-0.02em' }}>FATH<span style={{ color: '#00D4AA' }}> AI</span></span>
           </Link>
-          <div className="ld-nav-links" style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
+          <div className="ld-nav-links">
             {[{ label: 'Xususiyatlar', href: '#xususiyatlar' }, { label: 'Narxlar', href: '#narxlar' }, { label: 'Sharhlar', href: '#sharhlar' }].map((item) => (
               <a key={item.href} href={item.href} style={{ color: '#8888A0', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>{item.label}</a>
             ))}
           </div>
-          <div className="ld-nav-auth" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="ld-nav-auth">
             <Link className="ld-login-btn" href="/login" style={{ color: '#8888A0', fontSize: 14, fontWeight: 500, textDecoration: 'none', padding: '8px 16px' }}>Kirish</Link>
             <Link href="/register" style={{ background: 'linear-gradient(135deg, #00D4AA, #00B896)', color: '#07080C', fontSize: 14, fontWeight: 700, textDecoration: 'none', padding: '9px 20px', borderRadius: 9 }}>Boshlash </Link>
           </div>
@@ -314,13 +314,13 @@ export default async function Home() {
         <p style={{ fontSize: 'clamp(15px, 2vw, 19px)', color: '#8888A0', maxWidth: 600, lineHeight: 1.7, marginBottom: 48 }}>
           Grafik bilan soatlab o'tirmasdan daromad oling. FATH AI 24/7 bozorni kuzatadi, signal tayyor bo'lsa Telegramingizga keladi.
         </p>
-        <div className="ld-hero-btns" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 72 }}>
+        <div className="ld-hero-btns">
           <Link href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg, #00D4AA, #00B896)', color: '#07080C', fontSize: 16, fontWeight: 700, textDecoration: 'none', padding: '14px 32px', borderRadius: 12, boxShadow: '0 0 30px rgba(0,212,170,0.3)' }}>Bepul Boshlash <ArrowRight size={18} /></Link>
           <a href="#qanday-ishlaydi" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#EEEEF0', fontSize: 16, fontWeight: 600, textDecoration: 'none', padding: '14px 32px', borderRadius: 12 }}>Qanday ishlaydi <ChevronRight size={18} /></a>
         </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: '#555568', letterSpacing: '0.12em', fontWeight: 600, marginBottom: 14, textTransform: 'uppercase' }}>Jonli Signallar Ko'rinishi</div>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="ld-scards-wrap">
             <SCard pair="XAU/USD" dir="BUY" entry="2,318.50" tp1="2,334.00" tp2="2,350.00" sl="2,308.00" score={92} color="#00D4AA" />
             <SCard pair="EUR/USD" dir="BUY" entry="1.08654" tp1="1.09200" tp2="1.09800" sl="1.08300" score={87} color="#5B8BFF" />
             <SCard pair="BTC/USDT" dir="SELL" entry="67,420" tp1="65,800" tp2="64,200" sl="68,900" score={84} color="#FF4D6A" />
@@ -398,13 +398,13 @@ export default async function Home() {
             <p style={{ color: '#8888A0', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Haqiqiy natijalar — hech qanday filtrlashsiz. Yutqazgan signallar ham ko&apos;rsatiladi.</p>
           </div>
           <div style={{ background: '#0F1118', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 20, overflow: 'hidden' }}>
-            <div className="ld-res-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 80px 100px', padding: '12px 24px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="ld-res-grid" style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               {["Juftlik", "Yo'nalish", 'Natija', 'Pips', 'Sana'].map((h, hi) => (
                 <span key={h} className={hi === 1 || hi === 4 ? 'ld-res-hide' : ''} style={{ fontSize: 11, fontWeight: 700, color: '#555568', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{h}</span>
               ))}
             </div>
             {RESULTS.map((r, i) => (
-              <div key={i} className="ld-res-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 80px 100px', padding: '16px 24px', borderBottom: i < RESULTS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', alignItems: 'center' }}>
+              <div key={i} className="ld-res-grid" style={{ padding: '16px 24px', borderBottom: i < RESULTS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: 14, color: '#EEEEF0' }}>{r.pair}</span>
                 <span className="ld-res-hide" style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 6, background: r.dir === 'BUY' ? 'rgba(0,212,170,0.1)' : 'rgba(255,77,106,0.1)', color: r.dir === 'BUY' ? '#00D4AA' : '#FF4D6A', border: `1px solid ${r.dir === 'BUY' ? 'rgba(0,212,170,0.2)' : 'rgba(255,77,106,0.2)'}`, display: 'inline-block', textAlign: 'center' }}>{r.dir}</span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: r.color }}>{r.result}</span>

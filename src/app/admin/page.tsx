@@ -181,11 +181,11 @@ export default function AdminPage() {
   ]
 
   return (
-    <div style={{ padding: '24px 28px' }}>
+    <div className="admin-page-wrap">
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 }}>Admin Overview</h1>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', margin: '4px 0 0' }}>
@@ -235,12 +235,12 @@ export default function AdminPage() {
       )}
 
       {/* Stat cards — Users */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
+      <div className="admin-stats-grid">
         {cards.map(c => <StatCard key={c.label} {...c} />)}
       </div>
 
       {/* Stat cards — Signals */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div className="admin-stats-grid" style={{ marginBottom: 20 }}>
         {signalCards.map(c => <StatCard key={c.label} {...c} />)}
       </div>
 
@@ -258,7 +258,7 @@ export default function AdminPage() {
             ))}
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+        <div className="admin-trend-grid">
           <div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>Yangi foydalanuvchilar</div>
             <MiniLineChart data={(trends?.userChart ?? []).map(d => d.count)} color="#5B8BFF" />
@@ -275,7 +275,7 @@ export default function AdminPage() {
       </div>
 
       {/* Users breakdown + Monitoring + Alerts */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
+      <div className="admin-bottom-grid">
         {/* Users breakdown */}
         <div style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 16 }}>Foydalanuvchi taqsimoti</div>

@@ -238,11 +238,11 @@ export default function SignalCard({ signal, chartBase64, onChartZoom }: Props) 
             📈  Texnik grafik
           </div>
           <div
-            onClick={() => onChartZoom?.(`data:image/png;base64,${chartBase64}`)}
+            onClick={() => onChartZoom?.(`data:image/svg+xml;base64,${chartBase64}`)}
             style={{ cursor: 'zoom-in', borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)' }}
           >
             <img
-              src={`data:image/png;base64,${chartBase64}`}
+              src={`data:image/svg+xml;base64,${chartBase64}`}
               alt="FATH AI Grafik"
               style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'contain', background: '#07080C' }}
             />

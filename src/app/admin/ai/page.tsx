@@ -253,9 +253,9 @@ export default function AdminAIPage() {
   }
 
   return (
-    <div style={{ padding: '24px 28px' }}>
+    <div className="admin-page-wrap">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 }}>AI & Strategiyalar</h1>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: '4px 0 0' }}>
@@ -288,7 +288,8 @@ export default function AdminAIPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+      <div className="admin-tabs-wrap">
+      <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: 4, width: 'fit-content', minWidth: 'max-content' }}>
         {[
           { id: 'strategies', label: '⚗️ Strategiyalar',   icon: <Brain size={13} /> },
           { id: 'params',     label: '🎛️ AI Parametrlar', icon: <Sliders size={13} /> },
@@ -311,10 +312,11 @@ export default function AdminAIPage() {
           </button>
         ))}
       </div>
+      </div>
 
-      {/* в”Ђв”Ђ TAB: Strategiyalar в”Ђв”Ђ */}
+      {/* ─── TAB: Strategiyalar ─── */}
       {activeTab === 'strategies' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 20 }}>
+        <div className="g-sidebar">
           {/* Left вЂ” Strategiyalar */}
           <div>
             <div style={{
@@ -395,7 +397,7 @@ export default function AdminAIPage() {
 
       {/* в”Ђв”Ђ TAB: AI Parametrlar в”Ђв”Ђ */}
       {activeTab === 'params' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="g-2col">
           {/* LLM Params */}
           <div style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: 22 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 18 }}>LLM Parametrlar</div>
@@ -498,7 +500,7 @@ export default function AdminAIPage() {
           </div>
 
           {/* Summary cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          <div className="g-3col">
             {[
               { label: "So'rovlar", value: todayCalls || modelStats.reduce((a, m) => a + m.calls, 0), color: '#5B8BFF', suffix: '' },
               { label: 'Token sarfi', value: (todayTokens || modelStats.reduce((a, m) => a + m.tokens, 0)).toLocaleString(), color: '#F5B731', suffix: '' },
@@ -565,7 +567,7 @@ export default function AdminAIPage() {
 
       {/* ── TAB: Training Console ── */}
       {activeTab === 'training' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="g-2col">
           <div style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 16 }}>Yangi Ko&apos;rsatma Qo&apos;shish</div>
             <input

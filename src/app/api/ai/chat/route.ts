@@ -653,8 +653,14 @@ const RequestSchema = z.object({
 })
 
 // ─── Plan Limit Checker + Usage Tracker ──────────────────────────────────────
+// Yondashuv: oy kaliti (YYYY-MM) asosida userUsage/{uid}_{monthKey} hujjat.
+// Bu transaction yoki periodStart kalkulyatsiyasiga bog'liq emas — oddiy va ishonchli.
 const PLAN_DEFAULT_LIMITS: Record<string, number> = { free: 10, pro: 100, vip: 500 }
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+
+function getMonthKey(): string {
+  const d = new Date()
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
 
 async function checkAndIncrementUsage(uid: string): Promise<{ blocked: boolean; reason?: string }> {
   console.log('[usage] START uid=', uid)
@@ -662,109 +668,68 @@ async function checkAndIncrementUsage(uid: string): Promise<{ blocked: boolean; 
     initAdmin()
     const db = getFirestore()
 
-    // User va plan ma'lumotlarini parallel olamiz
+    // 1. User plan va plan limitini parallel o'qiymiz
     const [userDoc, plansSnap] = await Promise.all([
       db.collection('users').doc(uid).get(),
-      db.collection('plans').get(),
+      db.collection('plans').limit(20).get(),
     ])
-    // Firestore Timestamp → number konversiyasi
-    function toMs(val: unknown): number | undefined {
-      if (typeof val === 'number') return val
-      if (val && typeof (val as { toMillis?: () => number }).toMillis === 'function')
-        return (val as { toMillis: () => number }).toMillis()
-      if (val instanceof Date) return val.getTime()
-      return undefined
-    }
 
     const rawUser = userDoc.exists ? (userDoc.data() ?? {}) : {}
-    if (!userDoc.exists) {
-      console.log('[usage] user doc yo\'q — free limit bilan davom etamiz')
-    }
-    const user = {
-      plan:            (rawUser as Record<string, unknown>).plan as string | undefined,
-      planActivatedAt: toMs((rawUser as Record<string, unknown>).planActivatedAt),
-      planExpiresAt:   toMs((rawUser as Record<string, unknown>).planExpiresAt),
-      createdAt:       toMs((rawUser as Record<string, unknown>).createdAt),
-    }
-    const plan = user.plan ?? 'free'
-    const now  = Date.now()
+    const plan = ((rawUser as Record<string, unknown>).plan as string | undefined) ?? 'free'
 
     // Plan limitini topamiz
     const planDoc = plansSnap.docs.find(d => (d.data() as { name?: string }).name === plan)
     const planLimits = planDoc?.data() as { limits?: { aiChatLimit?: number } } | undefined
     const monthlyLimit: number = planLimits?.limits?.aiChatLimit ?? PLAN_DEFAULT_LIMITS[plan] ?? 10
-    console.log('[usage] plan=', plan, 'monthlyLimit=', monthlyLimit, 'planDocFound=', !!planDoc)
+    console.log('[usage] plan=', plan, 'limit=', monthlyLimit)
 
-    // Mavjud usage doc ni avval o'qib olamiz (periodStart aniqlash uchun)
-    const usageRef = db.collection('userUsage').doc(uid)
-    const existingUsageDoc = await usageRef.get()
-    const existingRaw = existingUsageDoc.exists ? (existingUsageDoc.data() ?? {}) : {}
-    const existingPeriodStart = toMs((existingRaw as Record<string, unknown>).periodStart)
+    // 2. Joriy oy usage ni o'qiymiz
+    const monthKey  = getMonthKey()
+    const usageDocId = `${uid}_${monthKey}`
+    const usageRef  = db.collection('userUsage').doc(usageDocId)
 
-    // Davr boshlanishi
-    let periodStart: number
-    if (plan === 'free') {
-      if (existingPeriodStart && (now - existingPeriodStart) < THIRTY_DAYS_MS) {
-        // Hali 30 kun o'tmagan — saqlangan davr boshini ishlatamiz
-        periodStart = existingPeriodStart
-      } else {
-        // Birinchi marta yoki yangi davr
-        const base = user.createdAt ?? now
-        periodStart = existingPeriodStart
-          ? existingPeriodStart + Math.floor((now - existingPeriodStart) / THIRTY_DAYS_MS) * THIRTY_DAYS_MS
-          : base
+    let currentUsage = 0
+    try {
+      const usageSnap = await usageRef.get()
+      if (usageSnap.exists) {
+        const d = usageSnap.data() ?? {}
+        currentUsage = typeof d.count === 'number' ? d.count : 0
       }
-    } else {
-      periodStart = user.planActivatedAt
-        ?? (user.planExpiresAt ? user.planExpiresAt - THIRTY_DAYS_MS : (user.createdAt ?? now))
-      const periodEnd = periodStart + THIRTY_DAYS_MS
-      if (now > periodEnd) {
-        return {
-          blocked: true,
-          reason: 'Tarifingiz muddati tugagan. Yangi tarif sotib olish orqali faollashtiring.',
-        }
-      }
+    } catch (readErr) {
+      console.error('[usage] usage o\'qish xatosi:', readErr instanceof Error ? readErr.message : readErr)
+      return { blocked: false } // O'qib bo'lmasa — bloklamaylik
     }
-    console.log('[usage] periodStart=', new Date(periodStart).toISOString(), 'existingPeriodStart=', existingPeriodStart ? new Date(existingPeriodStart).toISOString() : 'yo\'q')
 
-    // Firestore transaction: atomik tekshirish va oshirish
-    let blocked = false
-    let finalUsed = 0
+    console.log('[usage] uid=', uid, 'month=', monthKey, 'used=', currentUsage, '/', monthlyLimit)
 
-    await db.runTransaction(async (tx) => {
-      const usageDoc = await tx.get(usageRef)
-      const usageRaw = usageDoc.exists ? usageDoc.data() ?? {} : {}
-      const storedPeriodStart = toMs((usageRaw as Record<string, unknown>).periodStart)
-      const storedAiChatUsed  = (usageRaw as Record<string, unknown>).aiChatUsed
-
-      // Bir xil davr bo'lsa — amaldagi hisobni olamiz, aks holda 0
-      const aiChatUsed = storedPeriodStart === periodStart ? (typeof storedAiChatUsed === 'number' ? storedAiChatUsed : 0) : 0
-      finalUsed = aiChatUsed
-      console.log('[usage] storedPeriodStart=', storedPeriodStart, 'periodStart=', periodStart, 'aiChatUsed=', aiChatUsed, 'limit=', monthlyLimit)
-
-      if (aiChatUsed >= monthlyLimit) { blocked = true; return }
-
-      // Incrementing
-      if (!usageDoc.exists || storedPeriodStart !== periodStart) {
-        console.log('[usage] tx.set (yangi davr yoki hujjat yo\'q)')
-        tx.set(usageRef, { uid, periodStart, aiChatUsed: 1, updatedAt: now })
-      } else {
-        console.log('[usage] tx.update (increment)')
-        tx.update(usageRef, { aiChatUsed: FieldValue.increment(1), updatedAt: now })
-      }
-    })
-
-    if (blocked) {
+    if (currentUsage >= monthlyLimit) {
       return {
         blocked: true,
-        reason: `Oylik AI chat limitingiz tugadi (${finalUsed}/${monthlyLimit} so'rov ishlatilgan). Tarif yangilash orqali davom eting.`,
+        reason: `Oylik AI chat limitingiz tugadi (${currentUsage}/${monthlyLimit} so'rov). Tarif yangilang.`,
       }
     }
-    console.log('[usage] OK, blocked=false')
+
+    // 3. Atomic increment yoki yangi hujjat yaratish
+    try {
+      if (currentUsage === 0) {
+        // Yangi oy yoki birinchi so'rov — hujjat yaratamiz
+        await usageRef.set({ uid, month: monthKey, count: 1, updatedAt: Date.now() })
+        console.log('[usage] NEW set OK — count=1')
+      } else {
+        // Mavjud hujjat — increment
+        await usageRef.update({ count: FieldValue.increment(1), updatedAt: Date.now() })
+        console.log('[usage] increment OK — count=', currentUsage + 1, '/', monthlyLimit)
+      }
+    } catch (writeErr) {
+      console.error('[usage] YOZISH XATOSI:', writeErr instanceof Error ? writeErr.message : writeErr)
+      // Yozib bo'lmasa ham bloklash → request continue qiladi, limit saqlanmaydi
+      return { blocked: false }
+    }
+
     return { blocked: false }
   } catch (err) {
-    console.error('[usage] TRANSACTION XATO:', err)
-    return { blocked: false } // Xato bo'lsa — bloklamaylik
+    console.error('[usage] UMUMIY XATO:', err instanceof Error ? err.message : err)
+    return { blocked: false }
   }
 }
 
@@ -1018,6 +983,7 @@ export async function POST(req: NextRequest) {
 
   // ── Plan limit tekshirish (har so'rov − bitta limit) ─────────────────────
   if (userId) {
+    console.log('[chat] userId keldi:', userId)
     const limitResult = await checkAndIncrementUsage(userId)
     if (limitResult.blocked) {
       return NextResponse.json(
@@ -1025,6 +991,8 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       )
     }
+  } else {
+    console.warn('[chat] userId yuborilmadi — limit tekshirilmaydi!')
   }
 
   //  Admin strategiyasi va sozlamalarini parallel yuklash
@@ -1067,14 +1035,53 @@ export async function POST(req: NextRequest) {
         livePrice = liveTick.price
       }
 
-      // Texnik indikatorlar hisoblash
-      const ind = calculateIndicators(candles as Parameters<typeof calculateIndicators>[0])
-      indicatorData = ind as IndicatorResult
-      snrData   = calculateSNR(candles as Parameters<typeof calculateSNR>[0]) as SNRResult
-      smcData   = analyzeSMC(candles as Parameters<typeof analyzeSMC>[0]) as SMCResult
-      trendData = analyzeTrendlines(candles as Parameters<typeof analyzeTrendlines>[0]) as TrendlineResult
+      // ── Candle freshness validation ───────────────────────────
+      // Agar oxirgi sham 48 soatdan eski bo'lsa — provider stale ma'lumot qaytarmoqda
+      const lastCandleTs = (candles[candles.length - 1] as Candle).timestamp
+      const candleAgeHours = (Date.now() - lastCandleTs) / 3_600_000
+      if (candleAgeHours > 48) {
+        console.warn(`[fetchOHLCV] ⚠️ ${sym} ${tf}: oxirgi sham ${candleAgeHours.toFixed(0)}h eski! Provayderdan yangi so'rov yuborilmoqda...`)
+        // Force fresh fetch yaratamiz
+        try {
+          const freshCandles = await ohlcvFetcher()
+          if (freshCandles && freshCandles.length >= 20) {
+            const freshAge = (Date.now() - (freshCandles[freshCandles.length - 1] as Candle).timestamp) / 3_600_000
+            console.log(`[fetchOHLCV] Fresh candles: ${freshCandles.length} ta, so'nggi=${freshAge.toFixed(1)}h oldin`)
+            candleData = freshCandles as Candle[]
+          }
+        } catch (e) {
+          console.error(`[fetchOHLCV] Force-refresh ham muvaffaqiyatsiz:`, e)
+        }
+      }
 
-      const lastC  = candles[candles.length - 1]
+      // ── XAUUSD/metal uchun metals.live orqali narxni tekshirish ──
+      // Bu takroriy tekshirish: agar provider narxi juda eski bo'lsa tuzatamiz
+      if (!isCrypto && (sym === 'XAUUSD' || sym === 'XAGUSD')) {
+        try {
+          const metalSym = sym === 'XAUUSD' ? 'gold' : 'silver'
+          const metalRes = await fetch(`https://api.metals.live/v1/spot/${metalSym}`, {
+            cache: 'no-store', signal: AbortSignal.timeout(5000),
+          })
+          if (metalRes.ok) {
+            const metalData = await metalRes.json() as Array<{ [key: string]: number }>
+            const metalPrice = metalData?.[0]?.[metalSym] ?? 0
+            if (metalPrice > 0 && isFinite(metalPrice)) {
+              console.log(`[fetchOHLCV] ${sym} metals.live narx: ${metalPrice}, provider narx: ${livePrice ?? 'yo\'q'}`)
+              // metals.live narxi ishonchli — primary sifatida ishlatamiz
+              livePrice = metalPrice
+            }
+          }
+        } catch { /* metals.live xatosi — avvalgi narxni ishlatamiz */ }
+      }
+
+      // Texnik indikatorlar hisoblash
+      const ind = calculateIndicators(candleData as Parameters<typeof calculateIndicators>[0])
+      indicatorData = ind as IndicatorResult
+      snrData   = calculateSNR(candleData as Parameters<typeof calculateSNR>[0]) as SNRResult
+      smcData   = analyzeSMC(candleData as Parameters<typeof analyzeSMC>[0]) as SMCResult
+      trendData = analyzeTrendlines(candleData as Parameters<typeof analyzeTrendlines>[0]) as TrendlineResult
+
+      const lastC  = (candleData as Candle[])[candleData!.length - 1]
       // currentClose: live narx eng aniq, bo'lmasa oxirgi sham close
       const currentClose = livePrice ?? lastC.close
       const prev20 = candles.slice(-20)
@@ -1165,7 +1172,9 @@ export async function POST(req: NextRequest) {
   • Kunlik kutilgan harakat: ~${dailyAtrEstimate.toFixed(0)} nuqta
   • Haftalik kutilgan harakat: ~${weeklyAtrEstimate.toFixed(0)} nuqta
 ════════════════════════════════════════`
-    } catch { /* OHLCV xatosi */ }
+    } catch (ohlcvErr) { /* OHLCV xatosi */
+      console.error('[fetchOHLCV] XATO:', ohlcvErr instanceof Error ? ohlcvErr.message : ohlcvErr)
+    }
   }
 
   // Haftalik yoki ko'p kunlik so'rov bo'lsa D1 ham yuklanadi (multi-timeframe)
@@ -1234,8 +1243,15 @@ export async function POST(req: NextRequest) {
   }
 
   // OHLCV bor va foydalanuvchi signal so'ragan bo'lsa — signal majburiy
+  // Joriy narxni prefix uchun hozir aniqlaymiz (livePrice fetchOHLCV dan keyin tayyor)
+  const rawCd = candleData as Array<{ close: number }> | null
+  const cpForPrefix: number | null = livePrice ?? (rawCd && rawCd.length > 0 ? rawCd[rawCd.length - 1].close : null)
   const autoSignalPrefix = (detected && ohlcvContext && wantsSignal)
-    ? `MAJBURIY QOIDA: Quyida ${detected.symbol} [${detected.timeframe.toUpperCase()}] bozor ma'lumotlari berilgan. Foydalanuvchi tahlil/signal so'radi. JSON ichida tahlilni VA savdo signalini qaytarishingiz SHART. Agar setup yaroqsiz bo'lsa, direction=NEUTRAL va sababini yoz.\n\n`
+    ? `⚠️ MUHIM QOIDA: Quyida ${detected.symbol} [${detected.timeframe.toUpperCase()}] HAQIQIY bozor ma'lumotlari berilgan.\n` +
+      (cpForPrefix ? `JORIY BOZOR NARXI: ${cpForPrefix}\n` : '') +
+      `Entry, SL, TP barcha narxlar FAQAT shu JORIY NARXDAN boshlab hisoblangan mantiqiy darajalar bo'lishi SHART.\n` +
+      `Training ma'lumotlaridagi ESKI narxlarni ishlatish QATIY TAQIQLANGAN. Hamma narxlar hozirgi bozor darajasida bo'lsin.\n` +
+      `Foydalanuvchi tahlil/signal so'radi. JSON ichida tahlil VA savdo signalini qaytaring. Setup yaroqsiz bo'lsa direction=NEUTRAL yoz.\n\n`
     : detected && ohlcvContext
       ? `MA'LUMOT: Quyida ${detected.symbol} bozor ma'lumotlari bor, lekin foydalanuvchi umumiy savol berdi. JSON ichida signal: null qaytaring. Faqat savolga javob bering.\n\n`
       : ''
@@ -1356,6 +1372,25 @@ export async function POST(req: NextRequest) {
   const cd = candleData as Candle[] | null
   // Live narx birinchi prioritet, bo'lmasa oxirgi sham close
   const currentPrice = livePrice ?? (cd ? cd[cd.length - 1].close : 0)
+
+  // ── Narx sanity check: AI training bozor narxlarini ishlatmasin ──────────
+  // Agar AI entry narxi joriy narxdan 20 ATR dan ko'p farq qilsa → reset
+  if (aiResponse.signal && currentPrice > 0 && aiResponse.signal.direction !== 'NEUTRAL') {
+    const indAtr = indicatorData as { atr?: { value?: number } } | null
+    const atrCheck = indAtr?.atr?.value ?? currentPrice * 0.002
+    const maxDev   = atrCheck * 20
+    const sig      = aiResponse.signal
+    if (sig.entry != null && Math.abs(sig.entry - currentPrice) > maxDev) {
+      console.warn('[ai/chat] ⚠️ AI narx anomaliyasi: entry=', sig.entry, 'current=', currentPrice, '→ reset')
+      const sign = sig.direction === 'BUY' ? 1 : -1
+      sig.entry = +currentPrice.toFixed(5)
+      sig.sl    = +(currentPrice - sign * atrCheck * 1.5).toFixed(5)
+      sig.tp1   = +(currentPrice + sign * atrCheck * 2.0).toFixed(5)
+      sig.tp2   = +(currentPrice + sign * atrCheck * 3.5).toFixed(5)
+      sig.tp3   = +(currentPrice + sign * atrCheck * 5.5).toFixed(5)
+    }
+  }
+
   const levels = cd && aiResponse.signal ? buildLevelsFromSignal(aiResponse.signal, currentPrice) : null
   const chartSymbol = detected?.symbol ?? 'UNKNOWN'
   const chartTf     = detected?.timeframe ?? '1h'
@@ -1366,8 +1401,13 @@ export async function POST(req: NextRequest) {
   const shouldBuildSignal = wantsSignal && detected && cd
   const imageSignalFallback = imageBase64 && detected && !cd && aiResponse.signal
   if (shouldBuildSignal) {
-    signalData = buildSignalData(aiResponse.signal, levels, chartSymbol, chartTf, currentPrice,
-      snrData, smcData, trendData, indicatorData)
+    try {
+      signalData = buildSignalData(aiResponse.signal, levels, chartSymbol, chartTf, currentPrice,
+        snrData, smcData, trendData, indicatorData)
+      console.log('[ai/chat] signalData qurildi:', signalData?.status, signalData?.direction)
+    } catch (signalErr) {
+      console.error('[ai/chat] buildSignalData XATO:', signalErr instanceof Error ? signalErr.message : signalErr)
+    }
   } else if (imageSignalFallback && aiResponse.signal) {
     // Rasm uchun OHLCV yuklanmagan bo'lsa, AI signalidan to'g'ridan ishlatamiz
     const sig = aiResponse.signal
@@ -1404,7 +1444,10 @@ export async function POST(req: NextRequest) {
     try {
       const svgStr = generateChartSVG(chartSymbol, chartTf, cd, analysisForChart, chartLevels)
       chartBase64 = await svgToPngBase64(svgStr)
-    } catch { /* chart xatosi */ }
+      console.log('[ai/chat] chart generated, base64 length:', chartBase64?.length ?? 0)
+    } catch (chartErr) {
+      console.error('[ai/chat] generateChartSVG XATO:', chartErr instanceof Error ? chartErr.message : chartErr)
+    }
 
     // Haqiqiy AI signal bo'lsa Firestore ga saqlash (background)
     if (levels) {
@@ -1417,16 +1460,16 @@ export async function POST(req: NextRequest) {
         initAdmin()
         const db = getFirestore()
 
-        // Chart PNG ni Firebase Storage ga yuklash
+        // Chart SVG ni Firebase Storage ga yuklash
         let chartUrl: string | null = null
         if (chartBase64) {
           try {
             const bucket = getStorage().bucket()
-            const fileName = `charts/${Date.now()}_${chartSymbol}_${chartTf}.png`
+            const fileName = `charts/${Date.now()}_${chartSymbol}_${chartTf}.svg`
             const file = bucket.file(fileName)
-            const pngBuffer = Buffer.from(chartBase64, 'base64')
-            await file.save(pngBuffer, {
-              metadata: { contentType: 'image/png', cacheControl: 'public, max-age=31536000' },
+            const svgBuffer = Buffer.from(chartBase64, 'base64')
+            await file.save(svgBuffer, {
+              metadata: { contentType: 'image/svg+xml', cacheControl: 'public, max-age=31536000' },
             })
             // Ommaviy URL (Firebase Storage public rule bo'lishi kerak)
             await file.makePublic()

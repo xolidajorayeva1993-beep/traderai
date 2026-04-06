@@ -120,7 +120,7 @@ export default function UserDetailPage() {
   }
 
   return (
-    <div style={{ padding: '24px 28px' }}>
+    <div className="admin-page-wrap">
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <Link href="/admin/users" style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>

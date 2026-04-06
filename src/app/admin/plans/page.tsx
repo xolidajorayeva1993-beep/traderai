@@ -147,7 +147,7 @@ function PlanModal({ plan, onClose, onSave }: { plan: Partial<Plan> | null; onCl
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="g-2col-sm">
             <div>
               <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 6 }}>Nomi (key)</label>
               <input className="admin-input" value={form.name ?? ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="free, premium, pro" />
@@ -157,7 +157,7 @@ function PlanModal({ plan, onClose, onSave }: { plan: Partial<Plan> | null; onCl
               <input className="admin-input" value={form.displayName ?? ''} onChange={e => setForm(f => ({ ...f, displayName: e.target.value }))} placeholder="Free Plan" />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <div className="g-3col">
             <div>
               <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 6 }}>Narx ($)</label>
               <input className="admin-input" type="number" value={form.price ?? 0} onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))} />

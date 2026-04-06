@@ -291,9 +291,9 @@ export default function AdminUsersPage() {
   })
 
   return (
-    <div style={{ padding: '24px 28px' }}>
+    <div className="admin-page-wrap">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 10 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 }}>Foydalanuvchilar</h1>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: '4px 0 0' }}>
@@ -314,7 +314,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
+      <div className="admin-stats-grid" style={{ marginBottom: 24 }}>
         {[
           { label: 'Jami',    value: counts.total,    color: '#5B8BFF' },
           { label: 'Admin',   value: counts.admin,    color: '#F5B731' },
@@ -386,7 +386,7 @@ export default function AdminUsersPage() {
       )}
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
           background: '#0d1117', border: '1px solid rgba(255,255,255,0.08)',
@@ -430,7 +430,8 @@ export default function AdminUsersPage() {
             Foydalanuvchi topilmadi
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <th style={{ padding: '10px 8px 10px 16px', width: 36 }}>
@@ -464,6 +465,7 @@ export default function AdminUsersPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

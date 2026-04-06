@@ -42,7 +42,7 @@ async function shareMsg(msg: ChatMessage): Promise<boolean> {
       const byteStr = atob(msg.chartBase64)
       const arr = new Uint8Array(byteStr.length)
       for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i)
-      const file = new File([arr], 'fath-ai-chart.png', { type: 'image/png' })
+      const file = new File([arr], 'fath-ai-chart.svg', { type: 'image/svg+xml' })
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ text, files: [file] })
         return true
@@ -64,7 +64,7 @@ function MessageBubble({ msg, onChartClick }: { msg: ChatMessage; onChartClick: 
   }
 
   return (
-    <div style={{
+    <div className="chat-msg-row" style={{
       display: 'flex', flexDirection: isUser ? 'row-reverse' : 'row',
       alignItems: 'flex-end', gap: 10, marginBottom: 16, padding: '0 16px',
     }}>
@@ -80,7 +80,7 @@ function MessageBubble({ msg, onChartClick }: { msg: ChatMessage; onChartClick: 
         {isUser ? <User size={16} color="#fff"/> : <Image src="/logo2.png" alt="FATH AI" width={34} height={34} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />}
       </div>
 
-      <div style={{ maxWidth: '88%', minWidth: 0 }}>
+      <div className="chat-bubble-inner" style={{ maxWidth: '88%', minWidth: 0 }}>
         {!isUser && (
           <p style={{ fontSize: 10, fontWeight: 700, color: '#00D4AA', marginBottom: 4, letterSpacing: '.05em' }}>FATH AI</p>
         )}
@@ -111,7 +111,7 @@ function MessageBubble({ msg, onChartClick }: { msg: ChatMessage; onChartClick: 
                 </span>
               </div>
               <div
-                onClick={() => onChartClick(`data:image/png;base64,${msg.chartBase64}`)}
+                onClick={() => onChartClick(`data:image/svg+xml;base64,${msg.chartBase64}`)}
                 style={{
                   position: 'relative', cursor: 'zoom-in', display: 'inline-block',
                   borderRadius: 12, overflow: 'hidden',
@@ -121,7 +121,7 @@ function MessageBubble({ msg, onChartClick }: { msg: ChatMessage; onChartClick: 
                 }}
               >
                 <img
-                  src={`data:image/png;base64,${msg.chartBase64}`}
+                  src={`data:image/svg+xml;base64,${msg.chartBase64}`}
                   alt="AI chart"
                   style={{ height: 280, width: 'auto', maxWidth: '100%', display: 'block' }}
                 />
@@ -164,12 +164,12 @@ function MessageBubble({ msg, onChartClick }: { msg: ChatMessage; onChartClick: 
             </pre>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, justifyContent: isUser ? 'flex-end' : 'flex-start', flexWrap: 'wrap' }}>
           <p style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', margin: 0 }}>
             {new Date(msg.timestamp).toLocaleTimeString('uz', { hour: '2-digit', minute: '2-digit' })}
           </p>
           {!isUser && !msg.loading && (
-            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+            <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
               <button
                 onClick={handleShare}
                 style={{
@@ -185,7 +185,7 @@ function MessageBubble({ msg, onChartClick }: { msg: ChatMessage; onChartClick: 
                 }}
               >
                 {copied ? <Check size={13}/> : <Share2 size={13}/>}
-                {copied ? 'Ulashildi!' : 'Ulashish'}
+                <span className="chat-lbl">{copied ? 'Ulashildi!' : 'Ulashish'}</span>
               </button>
               <button
                 onClick={() => { navigator.clipboard.writeText(msg.content); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
@@ -200,7 +200,7 @@ function MessageBubble({ msg, onChartClick }: { msg: ChatMessage; onChartClick: 
                 }}
               >
                 <Copy size={13}/>
-                <span>Nusxa</span>
+                <span className="chat-lbl">Nusxa</span>
               </button>
             </div>
           )}
@@ -402,7 +402,7 @@ export default function ChatPage() {
         background: 'linear-gradient(180deg,#0D0F18 0%,#0A0C14 100%)',
       }}>
         {/* Header */}
-        <div style={{
+        <div className="chat-hdr" style={{
           padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,.06)',
           display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
         }}>
@@ -419,17 +419,17 @@ export default function ChatPage() {
               <span style={{ fontSize: 11, color: '#00D4AA', fontWeight: 600 }}>Online</span>
             </div>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexShrink: 0 }}>
             <button onClick={clearHistory} style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
               background: 'rgba(255,77,106,.1)', border: '1px solid rgba(255,77,106,.2)',
               color: '#FF4D6A', fontSize: 11, fontWeight: 600,
             }}>
-              <Trash2 size={12}/> Tozalash
+              <Trash2 size={12}/> <span style={{ display: 'none' } as React.CSSProperties}>Tozalash</span>
             </button>
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
+              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 8,
               background: 'rgba(91,139,255,.1)', border: '1px solid rgba(91,139,255,.2)',
             }}>
               <Zap size={12} color="#5B8BFF"/>
@@ -447,10 +447,11 @@ export default function ChatPage() {
         </div>
 
         {/* Quick actions */}
-        <div style={{
-          padding: '8px 16px', borderTop: '1px solid rgba(255,255,255,.04)',
-          display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0,
-        }}>
+        <div className="chat-qa" style={{
+          padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,.04)',
+          display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0,
+          overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+        } as React.CSSProperties}>
           {QUICK_ACTIONS.map(a => (
             <button key={a.cmd} onClick={() => sendMessage(a.cmd)} disabled={loading} style={{
               padding: '6px 12px', borderRadius: 20,
@@ -467,7 +468,7 @@ export default function ChatPage() {
         </div>
 
         {/* Input area */}
-        <div style={{ padding: '12px 16px 20px', borderTop: '1px solid rgba(255,255,255,.06)', flexShrink: 0 }}>
+        <div className="chat-inp" style={{ padding: '12px 16px 20px', borderTop: '1px solid rgba(255,255,255,.06)', flexShrink: 0 }}>
           {imagePreview && (
             <div style={{ marginBottom: 8, position: 'relative', display: 'inline-block' }}>
               <img src={imagePreview} alt="preview"
@@ -522,7 +523,7 @@ export default function ChatPage() {
               <Send size={16} color={(input.trim() || imageFile) && !loading ? '#fff' : 'rgba(255,255,255,.3)'}/>
             </button>
           </div>
-          <p style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', textAlign: 'center', marginTop: 8 }}>
+          <p className="chat-hint" style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', textAlign: 'center', marginTop: 8 }}>
             Enter  yuborish  Shift+Enter  yangi qator   Chart rasmi yuklang  AI tahlil qiladi!
           </p>
         </div>
@@ -531,6 +532,15 @@ export default function ChatPage() {
           @keyframes bounce {
             0%,80%,100% { transform:translateY(0); opacity:.5; }
             40%          { transform:translateY(-6px); opacity:1; }
+          }
+          @media (max-width: 640px) {
+            .chat-hdr   { padding: 10px 12px !important; gap: 8px !important; }
+            .chat-qa    { flex-wrap: nowrap !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; padding: 6px 10px !important; }
+            .chat-inp   { padding: 8px 10px 14px !important; }
+            .chat-hint  { display: none !important; }
+            .chat-lbl   { display: none !important; }
+            .chat-msg-row { padding-left: 10px !important; padding-right: 10px !important; }
+            .chat-bubble-inner { max-width: 94% !important; }
           }
         `}</style>
       </div>

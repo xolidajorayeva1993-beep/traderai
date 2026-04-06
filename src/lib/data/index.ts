@@ -8,11 +8,11 @@ import { AlphaVantageAdapter } from './AlphaVantageAdapter';
 import { BinanceAdapter } from './BinanceAdapter';
 import { CoinGeckoAdapter } from './CoinGeckoAdapter';
 
-// Forex: Yahoo first → TwelveData → AlphaVantage
+// Forex: TwelveData (spot, kalit kerak) → AlphaVantage (spot, kalit kerak) → Yahoo (GC=F fallback, kalitsiz)
 export const forexProvider = new FailoverDataProvider([
-  new YahooFinanceAdapter(),
   new TwelveDataAdapter(),
   new AlphaVantageAdapter(),
+  new YahooFinanceAdapter(),
 ]);
 
 // Crypto: Binance first → CoinGecko fallback

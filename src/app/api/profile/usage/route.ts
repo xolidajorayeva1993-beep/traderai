@@ -4,8 +4,6 @@
 // ============================================================
 import { NextRequest, NextResponse } from 'next/server'
 
-const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000
-
 const DEFAULT_MONTHLY_LIMITS: Record<string, number> = {
   free: 10,
   pro: 100,
@@ -16,6 +14,12 @@ const PLAN_DISPLAY: Record<string, string> = {
   free: 'Free',
   pro: 'Pro',
   vip: 'VIP',
+}
+
+/** YYYY-MM kaliti — checkAndIncrementUsage bilan bir xil */
+function getMonthKey(): string {
+  const d = new Date()
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
 }
 
 export async function GET(req: NextRequest) {
@@ -30,76 +34,37 @@ export async function GET(req: NextRequest) {
     initAdmin()
     const db = getFirestore()
 
-    // Foydalanuvchi va uning tarif ma'lumotlari
-    const [userDoc, usageDoc] = await Promise.all([
+    const monthKey  = getMonthKey()
+    const usageDocId = `${uid}_${monthKey}`
+
+    // Parallel: user, usage (yangi format), plans
+    const [userDoc, usageDoc, plansSnap] = await Promise.all([
       db.collection('users').doc(uid).get(),
-      db.collection('userUsage').doc(uid).get(),
+      db.collection('userUsage').doc(usageDocId).get(),
+      db.collection('plans').limit(20).get(),
     ])
 
-    // Timestamp → ms konversiya
-    function toMs(val: unknown): number | undefined {
-      if (typeof val === 'number') return val
-      if (val && typeof (val as { toMillis?: () => number }).toMillis === 'function')
-        return (val as { toMillis: () => number }).toMillis()
-      if (val instanceof Date) return val.getTime()
-      return undefined
-    }
-
     const rawUser = userDoc.exists ? (userDoc.data() ?? {}) : {}
-    const user = {
-      plan:            (rawUser as Record<string, unknown>).plan as string | undefined,
-      planActivatedAt: toMs((rawUser as Record<string, unknown>).planActivatedAt),
-      planExpiresAt:   toMs((rawUser as Record<string, unknown>).planExpiresAt),
-      createdAt:       toMs((rawUser as Record<string, unknown>).createdAt),
-    }
+    const plan = ((rawUser as Record<string, unknown>).plan as string | undefined) ?? 'free'
 
-    const plan = user.plan ?? 'free'
-    const now  = Date.now()
-
-    // Plan limitlarini Firestore /plans dan olish
-    const plansSnap = await db.collection('plans').where('name', '==', plan).limit(1).get()
-    const planData  = plansSnap.empty
-      ? null
-      : plansSnap.docs[0].data() as { limits?: { aiChatLimit?: number }; displayName?: string }
-
-    const monthlyLimit: number =
-      planData?.limits?.aiChatLimit ?? DEFAULT_MONTHLY_LIMITS[plan] ?? 10
+    // Plan limitini topamiz
+    const planDoc  = plansSnap.docs.find(d => (d.data() as { name?: string }).name === plan)
+    const planData = planDoc?.data() as { limits?: { aiChatLimit?: number }; displayName?: string } | undefined
+    const monthlyLimit: number = planData?.limits?.aiChatLimit ?? DEFAULT_MONTHLY_LIMITS[plan] ?? 10
     const planLabel = planData?.displayName ?? PLAN_DISPLAY[plan] ?? plan
 
-    // Davr hisoblash
-    // usageDoc da saqlangan periodStart ni birinchi olamiz
+    // Joriy oy qo'llanilgan hisob — yangi format: field 'count'
     const usageRaw = usageDoc.exists ? (usageDoc.data() ?? {}) : {}
-    const storedPeriodStart = toMs((usageRaw as Record<string, unknown>).periodStart)
-    const storedAiChatUsed  = (usageRaw as Record<string, unknown>).aiChatUsed
+    const aiChatUsed = typeof (usageRaw as Record<string, unknown>).count === 'number'
+      ? ((usageRaw as Record<string, unknown>).count as number)
+      : 0
+    const remaining = Math.max(0, monthlyLimit - aiChatUsed)
 
-    let periodStart: number
-    let periodEnd: number
-    let expired = false
-
-    if (plan === 'free') {
-      // Agar saqlangan davr bo'lsa va hali tugamagan bo'lsa — uni ishlatamiz
-      if (storedPeriodStart && (now - storedPeriodStart) < THIRTY_DAYS) {
-        periodStart = storedPeriodStart
-      } else if (storedPeriodStart) {
-        // Yangi davr boshlash
-        periodStart = storedPeriodStart + Math.floor((now - storedPeriodStart) / THIRTY_DAYS) * THIRTY_DAYS
-      } else {
-        const base = user.createdAt ?? now
-        periodStart = base
-      }
-      periodEnd = periodStart + THIRTY_DAYS
-    } else {
-      // To'lovli reja: planActivatedAt dan boshlanadi
-      periodStart = user.planActivatedAt
-        ?? (user.planExpiresAt ? user.planExpiresAt - THIRTY_DAYS : (user.createdAt ?? now))
-      periodEnd   = periodStart + THIRTY_DAYS
-      if (now > periodEnd) expired = true
-    }
-
-    // Joriy davr uchun foydalanish
-    const aiChatUsed = (storedPeriodStart === periodStart && typeof storedAiChatUsed === 'number') ? storedAiChatUsed : 0
-    const remaining  = Math.max(0, monthlyLimit - aiChatUsed)
-    const daysLeft   = Math.max(0, Math.ceil((periodEnd - now) / (24 * 60 * 60 * 1000)))
+    // Oy chegaralari (UTC)
+    const now   = new Date()
+    const dStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+    const dEnd   = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
+    const daysLeft = Math.max(0, Math.ceil((dEnd - Date.now()) / (24 * 60 * 60 * 1000)))
 
     return NextResponse.json({
       plan,
@@ -107,10 +72,10 @@ export async function GET(req: NextRequest) {
       monthlyLimit,
       aiChatUsed,
       remaining,
-      periodStart,
-      periodEnd,
+      periodStart: dStart,
+      periodEnd:   dEnd,
       daysLeft,
-      expired,
+      expired:     false,
     })
   } catch (err) {
     console.error('[GET /api/profile/usage]', err)

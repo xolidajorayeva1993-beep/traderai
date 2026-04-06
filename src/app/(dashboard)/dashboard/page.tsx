@@ -329,10 +329,7 @@ function SignalModal({ sig, onClose }: { sig: AiSignal; onClose: () => void }) {
           </div>
 
           {/* Signal levels grid */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10,
-            padding: '16px 22px',
-          }}>
+          <div className="sig-modal-levels">
             {[
               { label: 'ENTRY', value: fmt(sig.entry), color: '#fff' },
               { label: 'SL',    value: fmt(sig.sl),    color: '#FF4D6A' },
@@ -501,7 +498,7 @@ export default function DashboardPage() {
       </div>
 
       {/*  Stat Cards (5 ta: Active + Pending alohida ko'rsatiladi)  */}
-      <div className="dash-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+      <div className="dash-stats-grid">
         <StatCard label="Jami Signallar" value={String(stats.total)} sub={`${stats.open} ta ochiq`}                                        color="#5B8BFF" icon={Activity} />
         <StatCard label="Aktiv Signallar" value={String(stats.active ?? 0)} sub="darhol kuzatilmoqda"                                        color="#00D4AA" icon={Zap} />
         <StatCard label="Kutilayotgan"   value={String(stats.pending ?? 0)} sub="trigger kutilmoqda"                                         color="#F5B731" icon={Clock} />
@@ -510,7 +507,7 @@ export default function DashboardPage() {
       </div>
 
       {/*  Charts Row  */}
-      <div className="dash-charts-row" style={{ display: 'grid', gridTemplateColumns: hasPips ? '1fr 2fr 2fr' : '1fr 2fr', gap: 14 }}>
+      <div className="dash-charts-row">
         <WinRateCircle winRate={stats.winRate} wins={stats.wins} losses={stats.losses} />
         <SignalBarChart signals={signals} />
         {hasPips && <PipsChart signals={signals} />}
@@ -665,12 +662,11 @@ export default function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 660 }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
             {/* Table column headers */}
-            <div style={{ display: 'grid', gridTemplateColumns: '88px 1fr 110px 110px 110px 68px 112px', gap: 10, padding: '0 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 6 }}>
+            <div className="sig-table-grid" style={{ padding: '0 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 6 }}>
               {["YO'NAL", 'JUFTLIK', 'KIRISH', 'SL', 'TP1', 'R:R', 'HOLAT'].map(h => (
-                <span key={h} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
+                <span key={h} className={['SL','TP1','R:R'].includes(h) ? 'sig-col-hide-sm' : ''} style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.22)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
               ))}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -681,7 +677,8 @@ export default function DashboardPage() {
                   <div
                     key={sig.id}
                     onClick={() => setModalSig(sig)}
-                    style={{ display: 'grid', gridTemplateColumns: '88px 1fr 110px 110px 110px 68px 112px', gap: 10, padding: '11px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
+                    className="sig-table-grid"
+                    style={{ padding: '11px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.05)'; (e.currentTarget as HTMLDivElement).style.borderColor = `${si.color}28` }}
                     onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.02)'; (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.04)' }}
                   >
@@ -690,16 +687,16 @@ export default function DashboardPage() {
                         {sig.direction}
                       </span>
                     </div>
-                    <div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {sig.symbol} <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{sig.timeframe}</span>
                       </p>
                       <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{timeAgo(sig.createdAt)}</p>
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{fmt(sig.entry)}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#FF4D6A', fontFamily: 'monospace' }}>{fmt(sig.sl)}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#00D4AA', fontFamily: 'monospace' }}>{fmt(sig.tp1)}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#F5B731', fontFamily: 'monospace' }}>{sig.rr.toFixed(1)}</span>
+                    <span className="sig-col-hide-sm" style={{ fontSize: 12, fontWeight: 700, color: '#FF4D6A', fontFamily: 'monospace' }}>{fmt(sig.sl)}</span>
+                    <span className="sig-col-hide-sm" style={{ fontSize: 12, fontWeight: 700, color: '#00D4AA', fontFamily: 'monospace' }}>{fmt(sig.tp1)}</span>
+                    <span className="sig-col-hide-sm" style={{ fontSize: 12, fontWeight: 700, color: '#F5B731', fontFamily: 'monospace' }}>{sig.rr.toFixed(1)}</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 7, fontSize: 10, fontWeight: 700, background: si.bg, color: si.color, border: `1px solid ${si.color}25`, width: 'fit-content' }}>
                         <StatusIcon size={10} /> {si.label}
@@ -714,7 +711,6 @@ export default function DashboardPage() {
                 )
               })}
             </div>
-          </div>
           </div>
         )}
       </div>

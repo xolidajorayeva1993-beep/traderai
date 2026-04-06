@@ -1,0 +1,188 @@
+// ============================================================
+// Market Update Cron — barcha forex va kripto uchun OHLCV cache
+// GET /api/cron/market-update
+//
+// Manbalar:
+//   Forex/Metals: Deriv Binary WebSocket (bepul, SPOT narxlar)
+//   Kripto:       Binance REST API (bepul, limit yo'q)
+//
+// Google Cloud Scheduler: har 5 daqiqada shu endpointni chaqiradi.
+// Muvaffaqiyatli bo'lsa Firestore market_cache ga yozadi.
+// AI chat shu cacheni o'qiydi → hech qachon API limitiga urilmaydi.
+//
+// Xavfsizlik: X-Cron-Secret header = CRON_SECRET env
+// .env.local: CRON_SECRET=istalgan_qiymat_yozing
+// Cloud Scheduler: Custom Headers → X-Cron-Secret: <shu_qiymat>
+// ============================================================
+
+import { NextRequest, NextResponse } from 'next/server';
+import { setCachedOHLCVAsync } from '@/lib/ohlcvCache';
+import { fetchDerivMultiTF, isDerivSymbol } from '@/lib/data/DerivFetcher';
+import type { OHLCVCandle } from '@/types';
+
+// ─── Keshlanadigan barcha symbollar ─────────────────────────
+const FOREX_PAIRS = [
+  'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF',
+  'AUDUSD', 'USDCAD', 'NZDUSD',
+  'EURGBP', 'EURJPY', 'GBPJPY',
+  'XAUUSD', 'XAGUSD',   // Spot oltin va kumush (GC=F emas!)
+];
+
+const CRYPTO_PAIRS = [
+  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT',
+  'SOLUSDT', 'ADAUSDT', 'DOGEUSDT',
+];
+
+// Barcha timeframelar: M5 dan D1 gacha
+const ALL_TIMEFRAMES = ['5m', '15m', '30m', '1h', '4h', '1d'];
+
+// Binance timeframe mapping
+const BINANCE_TF: Record<string, string> = {
+  '5m': '5m', '15m': '15m', '30m': '30m',
+  '1h': '1h', '4h': '4h',  '1d': '1d',
+};
+
+// ─── Xavfsizlik tekshiruvi ───────────────────────────────────
+function isAuthorized(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    // Agar CRON_SECRET o'rnatilmagan bo'lsa, localhost'dan ruxsat
+    const host = req.headers.get('host') ?? '';
+    return host.includes('localhost') || host.includes('127.0.0.1');
+  }
+  return req.headers.get('x-cron-secret') === secret;
+}
+
+// ─── Binance klines (kripto OHLCV) ───────────────────────────
+async function fetchBinanceOHLCV(
+  symbol: string,
+  interval: string,
+  limit = 200,
+): Promise<OHLCVCandle[]> {
+  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`Binance ${symbol} ${interval}: HTTP ${res.status}`);
+  const raw: unknown[][] = await res.json();
+  return raw.map(k => ({
+    timestamp: Number(k[0]),
+    open:      parseFloat(String(k[1])),
+    high:      parseFloat(String(k[2])),
+    low:       parseFloat(String(k[3])),
+    close:     parseFloat(String(k[4])),
+    volume:    parseFloat(String(k[5])),
+  }));
+}
+
+// ─── Asinxron batch runner — N ta parallel ───────────────────
+async function batchRun<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    chunks.push(items.slice(i, i + concurrency));
+  }
+  for (const chunk of chunks) {
+    await Promise.allSettled(chunk.map(fn));
+  }
+}
+
+// ─── Asosiy handler ─────────────────────────────────────────
+export async function GET(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: 'Ruxsat yo\'q' }, { status: 401 });
+  }
+
+  const startMs = Date.now();
+  const summary = {
+    forex:  { ok: 0, fail: 0, pairs: [] as string[] },
+    crypto: { ok: 0, fail: 0, pairs: [] as string[] },
+    errors: [] as string[],
+  };
+
+  // ── 1. FOREX/METALS: Deriv WebSocket ───────────────────────
+  // Har bir symbol uchun bitta WS ulanish → 6 ta timeframe parallel
+  const derivPairs = FOREX_PAIRS.filter(isDerivSymbol);
+
+  await batchRun(derivPairs, 4, async (symbol) => {
+    try {
+      let results = await fetchDerivMultiTF(symbol, ALL_TIMEFRAMES, 200);
+
+      // Agar hech narsa kelmasa — bir marta qayta urinib ko'ramiz
+      if (Object.keys(results).length === 0) {
+        console.warn(`[cron] ⚠️ ${symbol}: Deriv bo'sh qaytdi, qayta urinish...`);
+        await new Promise(r => setTimeout(r, 2000));
+        results = await fetchDerivMultiTF(symbol, ALL_TIMEFRAMES, 200);
+      }
+
+      const tfs = Object.keys(results);
+
+      if (tfs.length === 0) {
+        summary.forex.fail++;
+        summary.errors.push(`${symbol}: Deriv — hech qanday timeframe kelmadi`);
+        return;
+      }
+
+      // Har bir timeframe uchun Firestore ga yozamiz
+      await Promise.allSettled(
+        tfs.map(async (tf) => {
+          const candles = results[tf];
+          if (candles.length >= 10) {
+            await setCachedOHLCVAsync(symbol, tf, candles);
+          }
+        }),
+      );
+
+      summary.forex.ok++;
+      summary.forex.pairs.push(`${symbol}(${tfs.join(',')})`);
+      console.log(`[cron] ✅ ${symbol} Deriv: ${tfs.length} timeframe, ${tfs.map(tf => `${tf}:${results[tf].length}`).join(' ')}`);
+    } catch (err) {
+      summary.forex.fail++;
+      const msg = err instanceof Error ? err.message : String(err);
+      summary.errors.push(`${symbol}: ${msg}`);
+      console.error(`[cron] ❌ ${symbol} Deriv xato: ${msg}`);
+    }
+  });
+
+  // ── 2. KRIPTO: Binance REST ─────────────────────────────────
+  // Har bir symbol × timeframe uchun alohida HTTP so'rov
+  type CryptoTask = { symbol: string; tf: string };
+  const cryptoTasks: CryptoTask[] = CRYPTO_PAIRS.flatMap(sym =>
+    ALL_TIMEFRAMES.map(tf => ({ symbol: sym, tf })),
+  );
+
+  await batchRun(cryptoTasks, 8, async ({ symbol, tf }) => {
+    const binanceInterval = BINANCE_TF[tf] ?? tf;
+    try {
+      const candles = await fetchBinanceOHLCV(symbol, binanceInterval, 200);
+      if (candles.length >= 10) {
+        await setCachedOHLCVAsync(symbol, tf, candles);
+        if (!summary.crypto.pairs.includes(symbol)) {
+          summary.crypto.ok++;
+          summary.crypto.pairs.push(symbol);
+        }
+      }
+    } catch (err) {
+      summary.crypto.fail++;
+      const msg = err instanceof Error ? err.message : String(err);
+      summary.errors.push(`${symbol}/${tf}: ${msg}`);
+      console.error(`[cron] ❌ ${symbol}/${tf} Binance xato: ${msg}`);
+    }
+  });
+
+  const durationMs = Date.now() - startMs;
+  const totalDocs = summary.forex.ok * ALL_TIMEFRAMES.length + summary.crypto.ok * ALL_TIMEFRAMES.length;
+
+  console.log(`[cron] Tugadi ${durationMs}ms — Firestore yozuvlar: ~${totalDocs}`);
+
+  return NextResponse.json({
+    ok:         true,
+    durationMs,
+    totalDocs,
+    forex:      summary.forex,
+    crypto:     summary.crypto,
+    errors:     summary.errors,
+    timestamp:  new Date().toISOString(),
+  });
+}

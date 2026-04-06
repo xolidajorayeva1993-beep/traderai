@@ -274,51 +274,100 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVE — Landing + Dashboard + Auth
+   MOBILE RESPONSIVE — Landing + Dashboard + Chat + Billing + Admin
    ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Landing page navbar ─────────────────────────────────────── */
-.ld-nav-links { display: flex; }
-.ld-nav-auth  { display: flex; }
+/* ───── Landing desktop defaults ─────────────────────────────── */
+.ld-nav-links   { display: flex; gap: 28px; align-items: center; }
+.ld-nav-auth    { display: flex; gap: 10px; align-items: center; }
+.ld-hero-btns   { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-bottom: 72px; }
+.ld-res-grid    { display: grid; grid-template-columns: 1fr 80px 100px 80px 100px; align-items: center; }
+.ld-res-hide    { display: block; }
+.ld-scards-wrap { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
-/* ─── Landing results table ───────────────────────────────────── */
-.ld-res-grid { display: grid; grid-template-columns: 1fr 80px 100px 80px 100px; }
-.ld-res-hide { display: block; }
+/* ───── Dashboard desktop defaults ───────────────────────────── */
+.dash-stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.dash-charts-row { display: flex; flex-wrap: wrap; gap: 14px; }
+.dash-charts-row > * { flex: 1 1 260px; min-width: 0; }
+.dash-charts-row > *:first-child { flex: 1 1 200px; }
 
-/* ─── Dashboard stats grid ────────────────────────────────────── */
-.dash-stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
-.dash-charts-row { display: grid; grid-template-columns: 1fr 1fr 220px; gap: 14px; }
+/* ───── Signal modal levels ───────────────────────────────────── */
+.sig-modal-levels { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 16px 22px; }
 
-@media (max-width: 1024px) {
-  .dash-charts-row { grid-template-columns: 1fr 1fr; }
+/* ───── Dashboard signals table ───────────────────────────────── */
+.sig-table-grid {
+  display: grid;
+  grid-template-columns: 88px 1fr 110px 110px 110px 68px 112px;
+  gap: 10px;
+  align-items: center;
 }
 
+/* ───── Admin AI tabs scroll wrapper ──────────────────────────── */
+.admin-tabs-wrap {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 20px;
+}
+.admin-tabs-wrap::-webkit-scrollbar { display: none; }
+
+/* ───── Admin Reports stat grids ──────────────────────────────── */
+.report-stats-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.report-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ───── Admin desktop defaults ────────────────────────────────── */
+.admin-page-wrap   { padding: 24px 28px; }
+.admin-stats-grid  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+.admin-stats-grid > * { min-width: 0; }
+.admin-trend-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.admin-bottom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+/* ═══════ 1024px ══════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .dash-charts-row  { grid-template-columns: 1fr 1fr !important; }
+  .admin-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .admin-bottom-grid{ grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ═══════ 768px ═══════════════════════════════════════════════ */
 @media (max-width: 768px) {
   /* ── Landing navbar ── */
   .ld-nav-links { display: none !important; }
   .ld-nav-auth  { gap: 6px !important; }
   .ld-nav-auth .ld-login-btn { display: none !important; }
 
-  /* ── Landing hero ── */
+  /* ── Landing hero buttons ── */
   .ld-hero-btns { flex-direction: column !important; align-items: stretch !important; width: 100% !important; max-width: 320px; margin: 0 auto 48px !important; }
-  .ld-hero-btns a { text-align: center !important; justify-content: center !important; width: 100% !important; }
+  .ld-hero-btns a, .ld-hero-btns button { text-align: center !important; justify-content: center !important; }
+
+  /* ── Landing SCards horizontal scroll ── */
+  .ld-scards-wrap { justify-content: flex-start !important; flex-wrap: nowrap !important; overflow-x: auto !important; padding: 0 0 8px !important; -webkit-overflow-scrolling: touch; }
 
   /* ── Landing results table ── */
-  .ld-res-grid { grid-template-columns: 1fr 60px 70px 70px !important; }
+  .ld-res-grid { grid-template-columns: 1fr 80px 80px !important; }
   .ld-res-hide { display: none !important; }
 
   /* ── Landing CTA box ── */
-  .ld-cta-box { padding: 36px 20px !important; }
+  .ld-cta-box { padding: 40px 24px !important; }
 
   /* ── Landing footer bottom ── */
-  .ld-footer-bottom { flex-direction: column !important; align-items: center !important; text-align: center !important; }
+  .ld-footer-bottom { flex-direction: column !important; align-items: center !important; text-align: center !important; gap: 8px !important; }
 
   /* ── Dashboard stats ── */
   .dash-stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-  .dash-charts-row { grid-template-columns: 1fr !important; }
+  .dash-charts-row > * { flex: 1 1 100% !important; }
 
-  /* ── Dashboard signal cards ── */
-  .sig-levels-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  /* ── Signal modal levels 6→3 ── */
+  .sig-modal-levels { grid-template-columns: repeat(3, 1fr) !important; padding: 12px 16px !important; }
 
   /* ── Billing ── */
   .billing-plans { grid-template-columns: 1fr !important; }
@@ -326,8 +375,37 @@ body {
   /* ── Profile ── */
   .profile-grid { grid-template-columns: 1fr !important; }
 
-  /* ── Admin tables ── */
-  .admin-table-wrap { overflow-x: auto !important; }
+  /* ── Admin ── */
+  .admin-page-wrap   { padding: 14px 16px !important; }
+  .admin-stats-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+  .admin-trend-grid  { grid-template-columns: 1fr !important; gap: 20px !important; }
+  .admin-bottom-grid { grid-template-columns: 1fr !important; }
+  .admin-table-wrap  { overflow-x: auto !important; }
+
+  /* ── Signals table compact (4 cols, hide SL/TP1/RR) ── */
+  .sig-table-grid { grid-template-columns: 60px 1fr 80px 105px !important; gap: 6px !important; }
+  .sig-col-hide-sm { display: none !important; }
+
+  /* ── Admin tabs: horizontal scroll ── */
+  .admin-tabs-wrap { overflow-x: auto !important; }
+
+  /* ── Reports stats + bottom ── */
+  .report-stats-4 { grid-template-columns: repeat(2, 1fr) !important; margin-bottom: 12px !important; }
+  .report-grid-2  { grid-template-columns: 1fr !important; }
+
+  /* ── Prompts split→stack ── */
+  .prompts-layout  { flex-direction: column !important; height: auto !important; }
+  .prompts-sidebar { width: 100% !important; border-right: none !important; border-bottom: 1px solid rgba(55,65,81,0.8) !important; max-height: 280px !important; overflow-y: auto !important; }
+  .prompts-main    { overflow-y: auto !important; min-height: 400px; }
+
+  /* ── Admin header wrap ── */
+  .admin-header-wrap { flex-wrap: wrap !important; gap: 8px !important; }
+
+  /* ── Utility grids ── */
+  .g-2col    { grid-template-columns: 1fr !important; }
+  .g-3col    { grid-template-columns: 1fr 1fr !important; }
+  .g-sidebar { grid-template-columns: 1fr !important; }
+  .g-2col-sm { grid-template-columns: 1fr !important; }
 
   /* ── Generic ── */
   .hide-mobile  { display: none !important; }
@@ -336,15 +414,43 @@ body {
   .stack-mobile { flex-direction: column !important; }
 }
 
+/* ═══════ 480px ═══════════════════════════════════════════════ */
 @media (max-width: 480px) {
   /* ── Dashboard stats ── */
   .dash-stats-grid { grid-template-columns: 1fr 1fr !important; }
 
+  /* ── Dashboard header ── */
+  .dash-header-row  { flex-direction: column !important; align-items: flex-start !important; }
+  .dash-header-btns { flex-wrap: wrap !important; width: 100% !important; }
+  .dash-header-btns a, .dash-header-btns button { flex: 1 1 auto !important; justify-content: center !important; }
+
   /* ── Auth card ── */
   .auth-card { padding: 1.5rem !important; }
 
-  /* ── Dashboard header ── */
-  .dash-header-row { flex-direction: column !important; align-items: flex-start !important; }
-  .dash-header-btns { flex-wrap: wrap !important; width: 100% !important; }
-  .dash-header-btns a, .dash-header-btns button { flex: 1 1 auto !important; justify-content: center !important; }
+  /* ── Admin stats ── */
+  .admin-stats-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* ── Signal modal levels 6→3 ── */
+  .sig-modal-levels { grid-template-columns: repeat(3, 1fr) !important; }
+
+  /* ── Landing stats bar ── */
+  .ld-stats-bar { grid-template-columns: 1fr 1fr !important; }
+
+  /* ── Admin bottom ── */
+  .admin-bottom-grid { grid-template-columns: 1fr !important; }
+  .g-3col { grid-template-columns: 1fr !important; }
+}
+
+/* ═══════ Admin & shared utility grids ═══════════════════════ */
+/* use className="g-2col" / "g-3col" / "g-sidebar" on any grid */
+.g-2col    { display: grid; grid-template-columns: 1fr 1fr;          gap: 16px; }
+.g-3col    { display: grid; grid-template-columns: repeat(3, 1fr);   gap: 12px; }
+.g-sidebar { display: grid; grid-template-columns: 1fr 360px;        gap: 20px; }
+.g-2col-sm { display: grid; grid-template-columns: 1fr 1fr;          gap: 12px; }
+
+@media (max-width: 768px) {
+  .g-2col    { grid-template-columns: 1fr !important; }
+  .g-3col    { grid-template-columns: 1fr 1fr !important; }
+  .g-sidebar { grid-template-columns: 1fr !important; }
+  .g-2col-sm { grid-template-columns: 1fr !important; }
 }

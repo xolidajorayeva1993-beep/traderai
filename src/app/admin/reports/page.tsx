@@ -133,9 +133,9 @@ export default function AdminReportsPage() {
   }
 
   return (
-    <div style={{ padding: '24px 28px', background: '#0a0e1a', minHeight: '100vh', color: '#f9fafb' }}>
+    <div className="admin-page-wrap" style={{ background: '#0a0e1a', minHeight: '100vh', color: '#f9fafb' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
             <FileText style={{ width: 20, height: 20, color: '#5B8BFF' }} />
@@ -145,7 +145,7 @@ export default function AdminReportsPage() {
             Kunlik / Haftalik / Oylik signal natijalari va statistika
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           {report && (
             <button onClick={() => exportCSV(report)}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 9, background: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.3)', color: '#00D4AA', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -196,21 +196,21 @@ export default function AdminReportsPage() {
           </div>
 
           {/* Main stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+          <div className="report-stats-4">
             <StatCard label="Jami signallar" value={report.totalSignals} color="#fff" />
             <StatCard label="Win Rate" value={`${report.winRate}%`} sub={`${report.tpCount} TP / ${report.slCount} SL`} color={report.winRate >= 60 ? '#00D4AA' : report.winRate >= 50 ? '#F5B731' : '#FF4D6A'} />
             <StatCard label="Profit Factor" value={report.profitFactor} color="#5B8BFF" />
             <StatCard label="Avg RR" value={`1:${report.avgRR}`} color="#9D6FFF" />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+          <div className="report-stats-4">
             <StatCard label="Avg Confidence" value={`${report.avgConfidence}%`} color="#F5B731" />
             <StatCard label="BUY / SELL" value={`${report.buyCount} / ${report.sellCount}`} color="#00D4AA" />
             <StatCard label="Yangi foydalanuvchilar" value={report.newUsers} color="#06b6d4" />
             <StatCard label="Daromad" value={`$${report.revenue.toLocaleString()}`} sub={`${report.newSubscriptions} yangi obuna`} color="#00D4AA" />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="report-grid-2">
             {/* Top pairs */}
             <div style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px 22px' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 8 }}>

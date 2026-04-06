@@ -178,9 +178,9 @@ Bu ta'limiy maqsadda. Haqiqiy moliyaviy maslahat emas.`
   }
 
   return (
-    <div className="flex h-full gap-0">
+    <div className="prompts-layout flex h-full gap-0">
       {/* Left sidebar — prompt list */}
-      <aside className="w-64 border-r border-gray-700 flex flex-col">
+      <aside className="prompts-sidebar w-64 border-r border-gray-700 flex flex-col">
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-white">AI Promptlar</h2>
@@ -256,7 +256,7 @@ Bu ta'limiy maqsadda. Haqiqiy moliyaviy maslahat emas.`
       </aside>
 
       {/* Main editor area */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="prompts-main flex-1 flex flex-col overflow-hidden">
         {selected ? (
           <>
             {/* Header */}

@@ -86,8 +86,17 @@ async function fetchYahooOHLCV(symbol: string, tf: string, fromMs: number): Prom
     : symbol + '=X'
 
   const ageMs = Date.now() - fromMs
-  const range  = ageMs > 30 * 86400_000 ? '60d' : ageMs > 7 * 86400_000 ? '30d' : '7d'
-  const interval = tf.toLowerCase().startsWith('1d') || tf.toLowerCase().startsWith('1w') ? '1d' : '1h'
+  // Timeframe → Yahoo Finance interval mapping (vaqt oralig'ini to'g'ri o'rnatamiz)
+  const TF_YF_INTERVAL: Record<string, string> = {
+    '1m':'1m','5m':'5m','15m':'15m','30m':'30m',
+    '1h':'60m','4h':'60m','1d':'1d','1w':'1wk',
+  }
+  const interval = TF_YF_INTERVAL[tf.toLowerCase()] ?? '60m'
+  // Qisqa timeframlar uchun Yahoo 5-7 kundan ko'p tarix bermaydi
+  const isShortTf = ['1m','5m','15m','30m'].includes(tf.toLowerCase())
+  const range = isShortTf
+    ? (ageMs > 5 * 86400_000 ? '5d' : '2d')
+    : (ageMs > 30 * 86400_000 ? '60d' : ageMs > 7 * 86400_000 ? '30d' : '7d')
 
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=${interval}&range=${range}`
   try {

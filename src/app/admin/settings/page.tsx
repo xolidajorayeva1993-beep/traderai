@@ -213,7 +213,7 @@ export default function AdminSettingsPage() {
 
       {/* GENERAL TAB */}
       {tab === 'general' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="g-2col">
           <div>
             <Section title={<><Key size={13} style={{ marginRight: 6 }} />API Kalitlari</>}>
               <Field label="OpenAI API Key"        value={str('openaiKey')}      onChange={set('openaiKey')}      masked placeholder="sk-..." />
@@ -247,7 +247,7 @@ export default function AdminSettingsPage() {
 
       {/* PAYMENT TAB */}
       {tab === 'payment' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="g-2col">
           <div>
             <Section title="Payme (Paycom)">
               <Toggle

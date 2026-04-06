@@ -1,0 +1,34 @@
+name: Market Cache Update
+
+on:
+  schedule:
+    # Har 5 daqiqada (UTC vaqt)
+    - cron: '*/5 * * * *'
+  # Qo'lda ham ishlatish mumkin
+  workflow_dispatch:
+
+jobs:
+  update-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: FATH AI — Market cache yangilash
+        run: |
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+            -X GET \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "https://trader-ai-d883f.web.app/api/cron/market-update")
+          
+          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
+          BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS:")
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response: $BODY"
+          
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "❌ Cron xato! Status: $HTTP_STATUS"
+            exit 1
+          fi
+          
+          echo "✅ Cache yangilandi"
