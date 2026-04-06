@@ -20,6 +20,67 @@ import { setCachedOHLCVAsync } from '@/lib/ohlcvCache';
 import { fetchDerivMultiTF, isDerivSymbol } from '@/lib/data/DerivFetcher';
 import type { OHLCVCandle } from '@/types';
 
+// ─── Yahoo spot narx (API key shart emas, faqat daily regularMarketPrice) ───
+// XAUUSD=X, XAGUSD=X → interbank spot narx (OANDA/Dukascopy bilan mos)
+const YAHOO_SPOT_SYMBOLS: Record<string, string> = {
+  XAUUSD: 'XAUUSD=X',
+  XAGUSD: 'XAGUSD=X',
+};
+
+async function fetchYahooSpotPrice(symbol: string): Promise<number | null> {
+  const yahooSym = YAHOO_SPOT_SYMBOLS[symbol.toUpperCase()];
+  if (!yahooSym) return null;
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=1d`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(8000),
+      },
+    );
+    if (!res.ok) return null;
+    const data = await res.json() as {
+      chart: { result?: Array<{ meta: { regularMarketPrice?: number } }> }
+    };
+    const price = data.chart.result?.[0]?.meta?.regularMarketPrice;
+    return (price && isFinite(price) && price > 0) ? price : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Deriv OTC narxini Yahoo spot narxiga moslashtiradi.
+ * basis = deriv_last_close - yahoo_spot
+ * Barcha candlelardan basis ayiriladi → real bozor narxlari.
+ * Sanity check: |basis| < 2% → anomaliyada normalizatsiya qilinmaydi.
+ */
+function normalizeToSpot(
+  candles: OHLCVCandle[],
+  spotPrice: number,
+  symbol: string,
+): OHLCVCandle[] {
+  if (candles.length === 0) return candles;
+  const lastClose = candles[candles.length - 1].close;
+  const basis = lastClose - spotPrice;
+  const basisPct = Math.abs(basis) / spotPrice;
+  if (basisPct > 0.02) {
+    // 2% dan ortiq farq → anomaliya, normalizatsiya qilinmaydi
+    console.warn(`[cron] ⚠️ ${symbol}: basis ${basis.toFixed(2)} (${(basisPct*100).toFixed(2)}%) juda katta, normalizatsiya o'tkazib yuborildi`);
+    return candles;
+  }
+  if (Math.abs(basis) < 0.1) return candles; // farq ahamiyatsiz
+  console.log(`[cron] 📐 ${symbol}: Deriv basis adj = ${basis > 0 ? '-' : '+'}${Math.abs(basis).toFixed(2)} (Deriv ${lastClose.toFixed(2)} → spot ${spotPrice.toFixed(2)})`);
+  return candles.map(c => ({
+    ...c,
+    open:  parseFloat((c.open  - basis).toFixed(3)),
+    high:  parseFloat((c.high  - basis).toFixed(3)),
+    low:   parseFloat((c.low   - basis).toFixed(3)),
+    close: parseFloat((c.close - basis).toFixed(3)),
+  }));
+}
+
 // ─── Keshlanadigan barcha symbollar ─────────────────────────
 const FOREX_PAIRS = [
   'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF',
@@ -103,7 +164,20 @@ export async function GET(req: NextRequest) {
 
   // ── 1. FOREX/METALS: Deriv WebSocket ───────────────────────
   // Har bir symbol uchun bitta WS ulanish → 6 ta timeframe parallel
+  // Metals (XAUUSD, XAGUSD) uchun Yahoo spot narxi olinib normalizatsiya qilinadi
   const derivPairs = FOREX_PAIRS.filter(isDerivSymbol);
+
+  // Metals uchun Yahoo spot narxlarini oldindan olamiz (parallel)
+  const spotPrices: Record<string, number> = {};
+  await Promise.allSettled(
+    Object.keys(YAHOO_SPOT_SYMBOLS).map(async (sym) => {
+      const price = await fetchYahooSpotPrice(sym);
+      if (price) {
+        spotPrices[sym] = price;
+        console.log(`[cron] 💰 ${sym} Yahoo spot narx: ${price}`);
+      }
+    }),
+  );
 
   await batchRun(derivPairs, 4, async (symbol) => {
     try {
@@ -124,13 +198,17 @@ export async function GET(req: NextRequest) {
         return;
       }
 
+      // Yahoo spot narxi mavjud bo'lsa → normalizatsiya qilamiz
+      const spotPrice = spotPrices[symbol.toUpperCase()];
+
       // Har bir timeframe uchun Firestore ga yozamiz
       await Promise.allSettled(
         tfs.map(async (tf) => {
-          const candles = results[tf];
-          if (candles.length >= 10) {
-            await setCachedOHLCVAsync(symbol, tf, candles);
-          }
+          let candles = results[tf];
+          if (candles.length < 10) return;
+          // Metals uchun Deriv OTC → Yahoo interbank spot normalizatsiya
+          if (spotPrice) candles = normalizeToSpot(candles, spotPrice, symbol);
+          await setCachedOHLCVAsync(symbol, tf, candles);
         }),
       );
 
